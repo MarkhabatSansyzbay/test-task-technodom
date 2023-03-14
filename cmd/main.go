@@ -7,9 +7,13 @@ import (
 
 	"task/internal/config"
 	"task/internal/repository"
+	"task/internal/service"
 )
 
-const configPath = "./config/config.toml"
+const (
+	configPath  = "./config/config.toml"
+	datasetFile = "./links.json"
+)
 
 func main() {
 	cfg, err := config.NewConfig(configPath)
@@ -23,5 +27,8 @@ func main() {
 		log.Fatalf("database initialization error: %s\n", err)
 	}
 
+	repo := repository.NewRedirecter(db)
+	service := service.NewRedirecter(repo)
+	fmt.Println(service.SaveDataset(datasetFile))
 	fmt.Println(db)
 }
