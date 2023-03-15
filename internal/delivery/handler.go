@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"task/internal/models"
 	"task/internal/service"
 
 	"github.com/julienschmidt/httprouter"
@@ -25,8 +26,22 @@ func (h *Handler) InitRoutes() *httprouter.Router {
 
 	router.GET("/admin/redirects", h.adminRedirects)
 	router.GET("/admin/redirects/:id", h.adminRedirectsID)
+	router.POST("/admin/redirects", h.createRedirect)
 
 	return router
+}
+
+func (h *Handler) createRedirect(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var redirect models.Link
+	if err := json.NewDecoder(r.Body).Decode(&redirect); err != nil {
+		h.httpError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err := h.service.CreateRedirect(redirect); err != nil {
+		h.httpError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (h *Handler) adminRedirectsID(w http.ResponseWriter, r *http.Request, p httprouter.Params) {

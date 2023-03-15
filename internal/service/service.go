@@ -13,6 +13,7 @@ type Redirecter interface {
 	SaveDataset(fileName string) error
 	Redirects() ([]models.Link, error)
 	RedirectByID(id int) (models.Link, error)
+	CreateRedirect(redirect models.Link) error
 }
 
 type RedirectService struct {
@@ -23,6 +24,14 @@ func NewRedirecter(repo repository.Redirecter) Redirecter {
 	return &RedirectService{
 		repo: repo,
 	}
+}
+
+func (s *RedirectService) CreateRedirect(redirect models.Link) error {
+	if err := s.repo.CreateRedirect(redirect); err != nil {
+		return fmt.Errorf("repo.CreateRedirect(): %s", err)
+	}
+
+	return nil
 }
 
 func (s *RedirectService) RedirectByID(id int) (models.Link, error) {

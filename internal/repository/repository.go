@@ -12,6 +12,7 @@ type Redirecter interface {
 	SaveDataset(values string) error
 	AllRedirects() (*sql.Rows, error)
 	RedirectByID(id int) (models.Link, error)
+	CreateRedirect(redirect models.Link) error
 }
 
 type RedirectRepository struct {
@@ -22,6 +23,19 @@ func NewRedirecter(db *sqlx.DB) Redirecter {
 	return &RedirectRepository{
 		db: db,
 	}
+}
+
+func (r *RedirectRepository) CreateRedirect(redirect models.Link) error {
+	query := `
+		INSERT INTO links (active_link, history_link)
+		VALUES ($1, $2);
+	`
+
+	if _, err := r.db.Exec(query, redirect.ActiveLink, redirect.HistoryLink); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *RedirectRepository) RedirectByID(id int) (models.Link, error) {
