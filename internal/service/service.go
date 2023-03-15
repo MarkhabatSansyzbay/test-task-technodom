@@ -1,7 +1,9 @@
 package service
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -16,7 +18,10 @@ type Redirecter interface {
 	CreateRedirect(redirect models.Link) error
 	UpdateRedirect(id int, newActiveLink string) error
 	DeleteRedirect(id int) error
+	ActiveLinkByHistory(link string) (string, error)
 }
+
+var ErrNoEntry = errors.New("no entry by this values")
 
 type RedirectService struct {
 	repo repository.Redirecter
@@ -26,6 +31,18 @@ func NewRedirecter(repo repository.Redirecter) Redirecter {
 	return &RedirectService{
 		repo: repo,
 	}
+}
+
+func (s *RedirectService) ActiveLinkByHistory(link string) (string, error) {
+	result, err := s.repo.ActiveLinkByHistory(link)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", ErrNoEntry
+		}
+		return "", fmt.Errorf("repo.ActiveLinkByLink(): %s", err)
+	}
+
+	return result, nil
 }
 
 func (s *RedirectService) DeleteRedirect(id int) error {
@@ -56,6 +73,9 @@ func (s *RedirectService) RedirectByID(id int) (models.Link, error) {
 	var res models.Link
 	res, err := s.repo.RedirectByID(id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.Link{}, ErrNoEntry
+		}
 		return models.Link{}, fmt.Errorf("repo.RedirectByID(): %s", err)
 	}
 

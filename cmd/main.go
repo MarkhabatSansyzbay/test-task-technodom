@@ -30,11 +30,12 @@ func main() {
 	}
 
 	repo := repository.NewRedirecter(db)
-	service := service.NewRedirecter(repo)
-	handler := delivery.NewHandler(service)
+	serv := service.NewRedirecter(repo)
+	cache := service.NewCashe()
+	handler := delivery.NewHandler(serv, cache)
 	server := new(server.Server)
 
-	if err := service.SaveDataset(datasetFile); err != nil {
+	if err := serv.SaveDataset(datasetFile); err != nil {
 		log.Printf("error inserting dataset to db: %s", err)
 	}
 

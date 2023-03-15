@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -13,11 +14,13 @@ import (
 
 type Handler struct {
 	service service.Redirecter
+	cache   service.Cache
 }
 
-func NewHandler(service service.Redirecter) *Handler {
+func NewHandler(service service.Redirecter, cache service.Cache) *Handler {
 	return &Handler{
 		service: service,
+		cache:   cache,
 	}
 }
 
@@ -30,7 +33,44 @@ func (h *Handler) InitRoutes() *httprouter.Router {
 	router.PATCH("/admin/redirects/:id", h.updateRedirect)
 	router.DELETE("/admin/redirects/:id", h.deleteRedirect)
 
+	router.GET("/redirects", h.redirects)
+
 	return router
+}
+
+// handler для пользовательского метода
+// для передачи запрашеваемой ссылки берет query parameter как v
+func (h *Handler) redirects(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	link := r.URL.Query().Get("v")
+
+	correctLink, ok := h.cache.Get(link)
+
+	// если запрашеваемой ссылки нет в кэше, ищем ссылку в базе
+	if !ok {
+		activeLink, err := h.service.ActiveLinkByHistory(link)
+		if err != nil && !errors.Is(err, service.ErrNoEntry) {
+			h.httpError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		// если ActiveLinkByHistory(link) вернула пустую строку, то значит активная ссылка это запрашеваемая ссылка
+		if activeLink == "" {
+			activeLink = link
+		} else {
+			w.WriteHeader(301)
+			w.Write([]byte(activeLink))
+		}
+
+		h.cache.Add(link, activeLink)
+		return
+	}
+
+	if correctLink != link {
+		w.WriteHeader(301)
+		w.Write([]byte(correctLink))
+	}
+
+	log.Printf("FROM Cashe: key - %s, value - %s", link, correctLink)
 }
 
 func (h *Handler) deleteRedirect(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -91,6 +131,10 @@ func (h *Handler) adminRedirectsID(w http.ResponseWriter, r *http.Request, p htt
 
 	res, err := h.service.RedirectByID(id)
 	if err != nil {
+		if errors.Is(err, service.ErrNoEntry) {
+			h.httpError(w, http.StatusBadRequest, nil)
+			return
+		}
 		h.httpError(w, http.StatusInternalServerError, err)
 		return
 	}

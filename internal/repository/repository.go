@@ -15,6 +15,7 @@ type Redirecter interface {
 	CreateRedirect(redirect models.Link) error
 	UpdateRedirect(id int, newActiveLink string) error
 	DeleteRedirect(id int) error
+	ActiveLinkByHistory(link string) (string, error)
 }
 
 type RedirectRepository struct {
@@ -25,6 +26,20 @@ func NewRedirecter(db *sqlx.DB) Redirecter {
 	return &RedirectRepository{
 		db: db,
 	}
+}
+
+func (r *RedirectRepository) ActiveLinkByHistory(link string) (string, error) {
+	query := `
+		SELECT active_link FROM links
+		WHERE history_link = $1;
+	`
+
+	var result string
+	if err := r.db.QueryRow(query, link).Scan(&result); err != nil {
+		return "", err
+	}
+
+	return result, nil
 }
 
 func (r *RedirectRepository) DeleteRedirect(id int) error {
