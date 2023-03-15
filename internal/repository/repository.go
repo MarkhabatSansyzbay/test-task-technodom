@@ -14,6 +14,7 @@ type Redirecter interface {
 	RedirectByID(id int) (models.Link, error)
 	CreateRedirect(redirect models.Link) error
 	UpdateRedirect(id int, newActiveLink string) error
+	DeleteRedirect(id int) error
 }
 
 type RedirectRepository struct {
@@ -24,6 +25,19 @@ func NewRedirecter(db *sqlx.DB) Redirecter {
 	return &RedirectRepository{
 		db: db,
 	}
+}
+
+func (r *RedirectRepository) DeleteRedirect(id int) error {
+	query := `
+		DELETE FROM links
+		WHERE ID = $1;
+	`
+
+	if _, err := r.db.Exec(query, id); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *RedirectRepository) UpdateRedirect(id int, newActiveLink string) error {

@@ -28,8 +28,23 @@ func (h *Handler) InitRoutes() *httprouter.Router {
 	router.GET("/admin/redirects/:id", h.adminRedirectsID)
 	router.POST("/admin/redirects", h.createRedirect)
 	router.PATCH("/admin/redirects/:id", h.updateRedirect)
+	router.DELETE("/admin/redirects/:id", h.deleteRedirect)
 
 	return router
+}
+
+func (h *Handler) deleteRedirect(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	idParam := p.ByName("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		h.httpError(w, http.StatusNotFound, nil)
+		return
+	}
+
+	if err := h.service.DeleteRedirect(id); err != nil {
+		h.httpError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (h *Handler) updateRedirect(w http.ResponseWriter, r *http.Request, p httprouter.Params) {

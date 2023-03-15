@@ -15,6 +15,7 @@ type Redirecter interface {
 	RedirectByID(id int) (models.Link, error)
 	CreateRedirect(redirect models.Link) error
 	UpdateRedirect(id int, newActiveLink string) error
+	DeleteRedirect(id int) error
 }
 
 type RedirectService struct {
@@ -25,6 +26,14 @@ func NewRedirecter(repo repository.Redirecter) Redirecter {
 	return &RedirectService{
 		repo: repo,
 	}
+}
+
+func (s *RedirectService) DeleteRedirect(id int) error {
+	if err := s.repo.DeleteRedirect(id); err != nil {
+		return fmt.Errorf("repo.DeleteRedirect(): %s", err)
+	}
+
+	return nil
 }
 
 func (s *RedirectService) UpdateRedirect(id int, newActiveLink string) error {
