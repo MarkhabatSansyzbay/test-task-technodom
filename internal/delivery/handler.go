@@ -27,12 +27,34 @@ func (h *Handler) InitRoutes() *httprouter.Router {
 	router.GET("/admin/redirects", h.adminRedirects)
 	router.GET("/admin/redirects/:id", h.adminRedirectsID)
 	router.POST("/admin/redirects", h.createRedirect)
+	router.PATCH("/admin/redirects/:id", h.updateRedirect)
 
 	return router
 }
 
+func (h *Handler) updateRedirect(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	idParam := p.ByName("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		h.httpError(w, http.StatusNotFound, nil)
+		return
+	}
+
+	var newLink models.Link
+	if err := json.NewDecoder(r.Body).Decode(&newLink); err != nil {
+		h.httpError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err := h.service.UpdateRedirect(id, newLink.ActiveLink); err != nil {
+		h.httpError(w, http.StatusInternalServerError, err)
+		return
+	}
+}
+
 func (h *Handler) createRedirect(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var redirect models.Link
+	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&redirect); err != nil {
 		h.httpError(w, http.StatusInternalServerError, err)
 		return

@@ -13,6 +13,7 @@ type Redirecter interface {
 	AllRedirects() (*sql.Rows, error)
 	RedirectByID(id int) (models.Link, error)
 	CreateRedirect(redirect models.Link) error
+	UpdateRedirect(id int, newActiveLink string) error
 }
 
 type RedirectRepository struct {
@@ -23,6 +24,19 @@ func NewRedirecter(db *sqlx.DB) Redirecter {
 	return &RedirectRepository{
 		db: db,
 	}
+}
+
+func (r *RedirectRepository) UpdateRedirect(id int, newActiveLink string) error {
+	query := `
+		UPDATE links SET active_link = $2, history_link = active_link
+		WHERE ID = $1;
+	`
+
+	if _, err := r.db.Exec(query, id, newActiveLink); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *RedirectRepository) CreateRedirect(redirect models.Link) error {
