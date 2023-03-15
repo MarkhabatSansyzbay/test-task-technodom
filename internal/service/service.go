@@ -11,6 +11,8 @@ import (
 
 type Redirecter interface {
 	SaveDataset(fileName string) error
+	Redirects() ([]models.Link, error)
+	RedirectByID(id int) (models.Link, error)
 }
 
 type RedirectService struct {
@@ -21,6 +23,37 @@ func NewRedirecter(repo repository.Redirecter) Redirecter {
 	return &RedirectService{
 		repo: repo,
 	}
+}
+
+func (s *RedirectService) RedirectByID(id int) (models.Link, error) {
+	var res models.Link
+	res, err := s.repo.RedirectByID(id)
+	if err != nil {
+		return models.Link{}, fmt.Errorf("repo.RedirectByID(): %s", err)
+	}
+
+	return res, nil
+}
+
+func (s *RedirectService) Redirects() ([]models.Link, error) {
+	rows, err := s.repo.AllRedirects()
+	if err != nil {
+		return nil, fmt.Errorf("repo.AllRedirects(): %s", err)
+	}
+	defer rows.Close()
+
+	var redirects []models.Link
+	for rows.Next() {
+		var redirect models.Link
+
+		if err := rows.Scan(&redirect.ID, &redirect.ActiveLink, &redirect.HistoryLink); err != nil {
+			return nil, fmt.Errorf("rows.Scan(): %s", err)
+		}
+
+		redirects = append(redirects, redirect)
+	}
+
+	return redirects, nil
 }
 
 func (s *RedirectService) SaveDataset(fileName string) error {

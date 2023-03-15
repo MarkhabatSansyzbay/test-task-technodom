@@ -5,7 +5,8 @@ import (
 )
 
 type Config struct {
-	Dsn string
+	Port string
+	Dsn  string
 }
 
 func NewConfig(configPath string) (*Config, error) {

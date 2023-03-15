@@ -6,7 +6,9 @@ import (
 	"log"
 
 	"task/internal/config"
+	"task/internal/delivery"
 	"task/internal/repository"
+	"task/internal/server"
 	"task/internal/service"
 )
 
@@ -29,6 +31,16 @@ func main() {
 
 	repo := repository.NewRedirecter(db)
 	service := service.NewRedirecter(repo)
-	fmt.Println(service.SaveDataset(datasetFile))
-	fmt.Println(db)
+	handler := delivery.NewHandler(service)
+	server := new(server.Server)
+
+	if err := service.SaveDataset(datasetFile); err != nil {
+		log.Printf("error inserting dataset to db: %s", err)
+	}
+
+	fmt.Println("Starting server...")
+
+	if err := server.Run(cfg.Port, handler.InitRoutes()); err != nil {
+		log.Fatalf("error while running the server: %s", err.Error())
+	}
 }
